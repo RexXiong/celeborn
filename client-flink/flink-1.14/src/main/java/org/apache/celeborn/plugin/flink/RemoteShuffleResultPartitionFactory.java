@@ -72,12 +72,8 @@ public class RemoteShuffleResultPartitionFactory {
       ResultPartitionManager partitionManager,
       BufferPoolFactory bufferPoolFactory,
       int networkBufferSize) {
-    long configuredMemorySize =
-        org.apache.celeborn.common.util.Utils.byteStringAsBytes(
-            PluginConf.getValue(flinkConf, PluginConf.MEMORY_PER_RESULT_PARTITION));
-    long minConfiguredMemorySize =
-        org.apache.celeborn.common.util.Utils.byteStringAsBytes(
-            PluginConf.getValue(flinkConf, PluginConf.MIN_MEMORY_PER_PARTITION));
+    long configuredMemorySize = PluginConf.getByteStringValueAsBytes(flinkConf, PluginConf.MEMORY_PER_RESULT_PARTITION);
+    long minConfiguredMemorySize = PluginConf.getByteStringValueAsBytes(flinkConf, PluginConf.MIN_MEMORY_PER_PARTITION);
     if (configuredMemorySize < minConfiguredMemorySize) {
       throw new IllegalArgumentException(
           String.format(

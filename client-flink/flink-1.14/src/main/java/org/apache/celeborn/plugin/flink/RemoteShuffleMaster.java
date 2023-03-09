@@ -24,13 +24,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import org.apache.celeborn.plugin.flink.config.PluginConf;
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.MemorySize;
+import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.shuffle.JobShuffleContext;
 import org.apache.flink.runtime.shuffle.PartitionDescriptor;
 import org.apache.flink.runtime.shuffle.ProducerDescriptor;
 import org.apache.flink.runtime.shuffle.ShuffleDescriptor;
 import org.apache.flink.runtime.shuffle.ShuffleMaster;
 import org.apache.flink.runtime.shuffle.ShuffleMasterContext;
+import org.apache.flink.runtime.shuffle.TaskInputsOutputsDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +47,7 @@ import org.apache.celeborn.plugin.flink.utils.ThreadUtils;
 public class RemoteShuffleMaster implements ShuffleMaster<RemoteShuffleDescriptor> {
   private static final Logger LOG = LoggerFactory.getLogger(RemoteShuffleMaster.class);
   private final ShuffleMasterContext shuffleMasterContext;
+  private final Configuration configuration;
   // Flink JobId -> Celeborn register shuffleIds
   private Map<JobID, Set<Integer>> jobShuffleIds = new ConcurrentHashMap<>();
   private String celebornAppId;
@@ -55,6 +61,7 @@ public class RemoteShuffleMaster implements ShuffleMaster<RemoteShuffleDescripto
 
   public RemoteShuffleMaster(ShuffleMasterContext shuffleMasterContext) {
     this.shuffleMasterContext = shuffleMasterContext;
+    this.configuration = shuffleMasterContext.getConfiguration();
   }
 
   @Override
@@ -65,8 +72,7 @@ public class RemoteShuffleMaster implements ShuffleMaster<RemoteShuffleDescripto
         if (lifecycleManager == null) {
           // use first jobID as celeborn shared appId for all other flink jobs
           celebornAppId = FlinkUtils.toCelebornAppId(jobID);
-          CelebornConf celebornConf =
-              FlinkUtils.toCelebornConf(shuffleMasterContext.getConfiguration());
+          CelebornConf celebornConf = FlinkUtils.toCelebornConf(configuration);
           lifecycleManager = new LifecycleManager(celebornAppId, celebornConf);
         }
       }
@@ -142,6 +148,32 @@ public class RemoteShuffleMaster implements ShuffleMaster<RemoteShuffleDescripto
   @Override
   public void releasePartitionExternally(ShuffleDescriptor shuffleDescriptor) {
     // TODO
+  }
+
+  @Override
+  public MemorySize computeShuffleMemorySizeForTask(
+      TaskInputsOutputsDescriptor taskInputsOutputsDescriptor) {
+    for (ResultPartitionType partitionType :
+        taskInputsOutputsDescriptor.getPartitionTypes().values()) {
+      if (!partitionType.isBlocking()) {
+        throw new RuntimeException(
+            "Blocking result partition type expected but found " + partitionType);
+      }
+    }
+
+    int numResultPartitions = taskInputsOutputsDescriptor.getSubpartitionNums().size();
+    long numBytesPerPartition = PluginConf.getByteStringValueAsBytes(configuration, PluginConf.MEMORY_PER_RESULT_PARTITION);
+    long numBytesForOutput = numBytesPerPartition * numResultPartitions;
+    int numInputGates = taskInputsOutputsDescriptor.getInputChannelNums().size();
+    long numBytesPerGate = PluginConf.getByteStringValueAsBytes(configuration, PluginConf.MEMORY_PER_INPUT_GATE);
+    long numBytesForInput = numBytesPerGate * numInputGates;
+
+    LOG.debug(
+        "Announcing number of bytes {} for output and {} for input.",
+        numBytesForOutput,
+        numBytesForInput);
+
+    return new MemorySize(numBytesForInput + numBytesForOutput);
   }
 
   @Override

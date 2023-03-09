@@ -17,6 +17,7 @@
 
 package org.apache.celeborn.plugin.flink.config;
 
+import org.apache.celeborn.common.util.Utils;
 import org.apache.flink.configuration.Configuration;
 
 import org.apache.celeborn.common.CelebornConf;
@@ -47,5 +48,9 @@ public enum PluginConf {
 
   public static String getValue(Configuration flinkConf, PluginConf conf) {
     return flinkConf.getString(conf.name, conf.defaultValue);
+  }
+
+  public static long getByteStringValueAsBytes(Configuration flinkConf, PluginConf conf) {
+    return Utils.byteStringAsBytes(PluginConf.getValue(flinkConf, conf));
   }
 }
