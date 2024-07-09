@@ -207,7 +207,7 @@ class CelebornShuffleReader[K, C](
             shuffleId,
             handle.shuffleId,
             partitionId,
-            context.attemptNumber(),
+            SparkUtils.getMapAttemptNumber(context),
             startMapIndex,
             endMapIndex,
             if (throwsFetchFailure) exceptionMaker else null,

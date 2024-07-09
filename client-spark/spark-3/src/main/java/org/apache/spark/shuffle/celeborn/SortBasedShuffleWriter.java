@@ -143,7 +143,7 @@ public class SortBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
               taskContext,
               shuffleId,
               mapId,
-              taskContext.attemptNumber(),
+              SparkUtils.getMapAttemptNumber(taskContext),
               taskContext.taskAttemptId(),
               numMappers,
               numPartitions,
@@ -340,7 +340,7 @@ public class SortBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         shuffleClient.pushData(
             shuffleId,
             mapId,
-            taskContext.attemptNumber(),
+            SparkUtils.getMapAttemptNumber(taskContext),
             partitionId,
             buffer,
             0,
@@ -357,12 +357,13 @@ public class SortBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     pusher.pushData(false);
     pusher.close();
 
-    shuffleClient.pushMergedData(shuffleId, mapId, taskContext.attemptNumber());
+    shuffleClient.pushMergedData(shuffleId, mapId, SparkUtils.getMapAttemptNumber(taskContext));
     writeMetrics.incWriteTime(System.nanoTime() - pushStartTime);
     writeMetrics.incRecordsWritten(tmpRecordsWritten);
 
     long waitStartTime = System.nanoTime();
-    shuffleClient.mapperEnd(shuffleId, mapId, taskContext.attemptNumber(), numMappers);
+    shuffleClient.mapperEnd(
+        shuffleId, mapId, SparkUtils.getMapAttemptNumber(taskContext), numMappers);
     writeMetrics.incWriteTime(System.nanoTime() - waitStartTime);
   }
 
@@ -389,7 +390,7 @@ public class SortBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         }
       }
     } finally {
-      shuffleClient.cleanup(shuffleId, mapId, taskContext.attemptNumber());
+      shuffleClient.cleanup(shuffleId, mapId, SparkUtils.getMapAttemptNumber(taskContext));
     }
   }
 

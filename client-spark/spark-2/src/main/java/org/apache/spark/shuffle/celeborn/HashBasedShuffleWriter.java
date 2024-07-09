@@ -146,7 +146,7 @@ public class HashBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
           new DataPusher(
               shuffleId,
               mapId,
-              taskContext.attemptNumber(),
+              SparkUtils.getMapAttemptNumber(taskContext),
               taskContext.taskAttemptId(),
               numMappers,
               numPartitions,
@@ -273,7 +273,7 @@ public class HashBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         shuffleClient.pushData(
             shuffleId,
             mapId,
-            taskContext.attemptNumber(),
+            SparkUtils.getMapAttemptNumber(taskContext),
             partitionId,
             buffer,
             0,
@@ -318,7 +318,8 @@ public class HashBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     // here we wait for all the in-flight batches to return which sent by dataPusher thread
     dataPusher.waitOnTermination();
     sendBufferPool.returnPushTaskQueue(dataPusher.getIdleQueue());
-    shuffleClient.prepareForMergeData(shuffleId, mapId, taskContext.attemptNumber());
+    shuffleClient.prepareForMergeData(
+        shuffleId, mapId, SparkUtils.getMapAttemptNumber(taskContext));
 
     // merge and push residual data to reduce network traffic
     // NB: since dataPusher thread have no in-flight data at this point,
@@ -330,7 +331,7 @@ public class HashBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
             shuffleClient.mergeData(
                 shuffleId,
                 mapId,
-                taskContext.attemptNumber(),
+                SparkUtils.getMapAttemptNumber(taskContext),
                 i,
                 sendBuffers[i],
                 0,
@@ -343,7 +344,7 @@ public class HashBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         writeMetrics.incBytesWritten(bytesWritten);
       }
     }
-    shuffleClient.pushMergedData(shuffleId, mapId, taskContext.attemptNumber());
+    shuffleClient.pushMergedData(shuffleId, mapId, SparkUtils.getMapAttemptNumber(taskContext));
 
     updateMapStatus();
 
@@ -352,7 +353,8 @@ public class HashBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     sendOffsets = null;
 
     long waitStartTime = System.nanoTime();
-    shuffleClient.mapperEnd(shuffleId, mapId, taskContext.attemptNumber(), numMappers);
+    shuffleClient.mapperEnd(
+        shuffleId, mapId, SparkUtils.getMapAttemptNumber(taskContext), numMappers);
     writeMetrics.incWriteTime(System.nanoTime() - waitStartTime);
 
     BlockManagerId bmId = SparkEnv.get().blockManager().shuffleServerId();
@@ -389,7 +391,7 @@ public class HashBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         }
       }
     } finally {
-      shuffleClient.cleanup(shuffleId, mapId, taskContext.attemptNumber());
+      shuffleClient.cleanup(shuffleId, mapId, SparkUtils.getMapAttemptNumber(taskContext));
     }
   }
 }
