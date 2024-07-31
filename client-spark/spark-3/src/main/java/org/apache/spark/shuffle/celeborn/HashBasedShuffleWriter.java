@@ -142,6 +142,8 @@ public class HashBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
           new DataPusher(
               shuffleId,
               mapId,
+              taskContext.stageId(),
+              taskContext.stageAttemptNumber(),
               SparkUtils.getMapAttemptNumber(taskContext),
               taskContext.taskAttemptId(),
               numMappers,

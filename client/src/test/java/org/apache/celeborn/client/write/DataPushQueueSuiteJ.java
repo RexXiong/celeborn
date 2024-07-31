@@ -104,6 +104,8 @@ public class DataPushQueueSuiteJ {
             mapId,
             attemptId,
             0,
+            0,
+            0,
             numMappers,
             numPartitions,
             conf,

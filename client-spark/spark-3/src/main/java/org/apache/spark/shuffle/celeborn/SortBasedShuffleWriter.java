@@ -18,6 +18,7 @@
 package org.apache.spark.shuffle.celeborn;
 
 import java.io.IOException;
+import java.util.Random;
 import java.util.concurrent.atomic.LongAdder;
 
 import scala.Option;
@@ -77,6 +78,8 @@ public class SortBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
 
   private final LongAdder[] mapStatusLengths;
   private long tmpRecordsWritten = 0;
+  private boolean testRandomPushForStageRerun = false;
+  private final Random random = new Random();
 
   /**
    * Are we in the process of stopping? Because map tasks can call stop() with success = true and
@@ -124,7 +127,7 @@ public class SortBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     this.numPartitions = dep.partitioner().numPartitions();
     this.shuffleClient = client;
     unsafeRowFastWrite = conf.clientPushUnsafeRowFastWrite();
-
+    this.testRandomPushForStageRerun = conf.testRandomPushForStageRerun();
     serBuffer = new OpenByteArrayOutputStream(DEFAULT_INITIAL_SER_BUFFER_SIZE);
     serOutputStream = serializer.serializeStream(serBuffer);
 
@@ -271,7 +274,7 @@ public class SortBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         boolean success =
             pusher.insertRecord(
                 row.getBaseObject(), row.getBaseOffset(), rowSize, partitionId, true);
-        if (!success) {
+        if (!success || randomPush()) {
           doPush();
           success =
               pusher.insertRecord(
@@ -283,6 +286,14 @@ public class SortBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
       }
       tmpRecordsWritten++;
     }
+  }
+
+  private boolean randomPush() {
+    if (testRandomPushForStageRerun) {
+      return random.nextInt(3) < 1;
+    }
+
+    return false;
   }
 
   private void doPush() throws IOException {
@@ -316,7 +327,7 @@ public class SortBasedShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
                 serializedRecordSize,
                 partitionId,
                 false);
-        if (!success) {
+        if (!success || randomPush()) {
           doPush();
           success =
               pusher.insertRecord(

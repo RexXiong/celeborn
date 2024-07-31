@@ -1242,6 +1242,7 @@ class CelebornConf(loadDefaults: Boolean) extends Cloneable with Logging with Se
   // //////////////////////////////////////////////////////
   def testFetchFailure: Boolean = get(TEST_CLIENT_FETCH_FAILURE)
   def testMockDestroySlotsFailure: Boolean = get(TEST_CLIENT_MOCK_DESTROY_SLOTS_FAILURE)
+  def testRandomPushForStageRerun: Boolean = get(TEST_CLIENT_PUSH_MOCK_RANDOM_PUSH_FOR_STAGE_RERUN)
   def testMockCommitFilesFailure: Boolean = get(TEST_CLIENT_MOCK_COMMIT_FILES_FAILURE)
   def testPushPrimaryDataTimeout: Boolean = get(TEST_CLIENT_PUSH_PRIMARY_DATA_TIMEOUT)
   def testPushReplicaDataTimeout: Boolean = get(TEST_WORKER_PUSH_REPLICA_DATA_TIMEOUT)
@@ -2672,7 +2673,7 @@ object CelebornConf extends Logging {
         "shuffle data is 128M and the data will need 16 fetch chunk requests to fetch.")
       .bytesConf(ByteUnit.BYTE)
       .checkValue(v => v < Integer.MAX_VALUE, "Chunk size can not be larger than 2GB")
-      .createWithDefaultString("8m")
+      .createWithDefaultString("100k")
 
   val CLIENT_FETCH_DFS_READ_CHUNK_SIZE: ConfigEntry[Long] =
     buildConf("celeborn.client.fetch.dfsReadChunkSize")
@@ -3793,6 +3794,14 @@ object CelebornConf extends Logging {
       .internal
       .categories("test", "client")
       .doc("Fail destroy slots request for test")
+      .version("0.3.2")
+      .booleanConf
+      .createWithDefault(false)
+
+  val TEST_CLIENT_PUSH_MOCK_RANDOM_PUSH_FOR_STAGE_RERUN: ConfigEntry[Boolean] =
+    buildConf("celeborn.test.client.push.mockRandomPushForStageRerun")
+      .internal
+      .categories("test", "client")
       .version("0.3.2")
       .booleanConf
       .createWithDefault(false)

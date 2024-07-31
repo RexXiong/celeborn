@@ -178,6 +178,8 @@ public class SortBasedPusher extends MemoryConsumer {
           new DataPusher(
               shuffleId,
               mapId,
+              taskContext.stageId(),
+              taskContext.stageAttemptNumber(),
               attemptNumber,
               taskAttemptId,
               numMappers,

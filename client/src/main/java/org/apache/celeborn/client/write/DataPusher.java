@@ -64,6 +64,8 @@ public class DataPusher {
   public DataPusher(
       int shuffleId,
       int mapId,
+      int stageId,
+      int stageAttemptId,
       int attemptId,
       long taskId,
       int numMappers,
@@ -98,6 +100,15 @@ public class DataPusher {
     this.client = client;
     this.afterPush = afterPush;
     this.mapStatusLengths = mapStatusLengths;
+
+    logger.info(
+        "data pusher started for task: {}-{}-{}-{}-{}-{}",
+        stageId,
+        mapId,
+        attemptId,
+        stageAttemptId,
+        shuffleId,
+        taskId);
 
     pushThread =
         new Thread("celeborn-client-data-pusher-" + taskId) {
